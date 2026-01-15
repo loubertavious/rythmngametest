@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Game - Vaporwave</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: #0a0a0a;
+            background-image: 
+                linear-gradient(90deg, rgba(255, 0, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(rgba(255, 0, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #fff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 0, 255, 0.1) 0%, 
+                rgba(0, 255, 255, 0.1) 50%, 
+                rgba(255, 0, 255, 0.1) 100%);
+            animation: gradientShift 10s ease infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        .header {
+            text-align: center;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.7);
+            border-bottom: 3px solid #ff00ff;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s;
+        }
+
+        .header.player1-active {
+            border-bottom-color: #ff00ff;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+        }
+
+        .header.player2-active {
+            border-bottom-color: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: textShimmer 3s ease infinite;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            font-weight: 900;
+        }
+
+        @keyframes textShimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        #header-status {
+            font-size: 1.2em;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+            letter-spacing: 2px;
+        }
+
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border: 2px solid #ff00ff;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+            transition: all 0.3s;
+        }
+
+        .player-name {
+            font-size: 1.5em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .player-name.player1 {
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+        }
+
+        .player-name.player2 {
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+        }
+
+        .player-info.player1-active {
+            border-color: #ff00ff;
+            box-shadow: 0 0 25px rgba(255, 0, 255, 0.5);
+        }
+
+        .player-info.player1-active.active {
+            border-color: #ff00ff;
+            box-shadow: 0 0 40px rgba(255, 0, 255, 0.8);
+            animation: pulsePink 2s ease infinite;
+        }
+
+        @keyframes pulsePink {
+            0%, 100% { box-shadow: 0 0 40px rgba(255, 0, 255, 0.8); }
+            50% { box-shadow: 0 0 60px rgba(255, 0, 255, 1); }
+        }
+
+        .player-info.player2-active {
+            border-color: #00ffff;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
+        }
+
+        .player-info.player2-active.active {
+            border-color: #00ffff;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.8);
+            animation: pulseCyan 2s ease infinite;
+        }
+
+        @keyframes pulseCyan {
+            0%, 100% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.8); }
+            50% { box-shadow: 0 0 60px rgba(0, 255, 255, 1); }
+        }
+
+        .status {
+            font-size: 1em;
+            color: #fff;
+            text-shadow: 0 0 5px #fff;
+        }
+
+        .recording-timer {
+            font-size: 1.5em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-top: 10px;
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            border: 2px solid;
+            display: none;
+        }
+
+        .player1-active .recording-timer {
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+            border-color: #ff00ff;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+        }
+
+        .player2-active .recording-timer {
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+
+        .recording-timer.warning {
+            animation: timerPulse 0.5s ease infinite;
+        }
+
+        @keyframes timerPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .player1-active .stat-value {
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
+        }
+
+        .player2-active .stat-value {
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .canvas-container {
+            position: relative;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            flex: 1;
+            min-height: 500px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            border: 3px solid #ff00ff;
+            box-shadow: 
+                0 0 20px rgba(255, 0, 255, 0.5),
+                inset 0 0 20px rgba(0, 255, 255, 0.2);
+            transition: all 0.3s;
+        }
+
+        .canvas-container.player1-active {
+            border-color: #ff00ff;
+            box-shadow: 
+                0 0 20px rgba(255, 0, 255, 0.5),
+                inset 0 0 20px rgba(255, 0, 255, 0.2);
+        }
+
+        .canvas-container.player2-active {
+            border-color: #00ffff;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.5),
+                inset 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 12px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1em;
+            font-weight: 700;
+            border: 2px solid;
+            border-radius: 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-family: 'Orbitron', monospace;
+            background: rgba(0, 0, 0, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px currentColor;
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            color: #00ffff;
+            border-color: #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+        }
+
+        .player1-active .btn-primary {
+            color: #ff00ff;
+            border-color: #ff00ff;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+
+        .player1-active .btn-primary:hover:not(:disabled) {
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.8);
+        }
+
+        .btn-secondary {
+            color: #ff00ff;
+            border-color: #ff00ff;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.8);
+        }
+
+        .player2-active .btn-secondary {
+            color: #00ffff;
+            border-color: #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .player2-active .btn-secondary:hover:not(:disabled) {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+        }
+
+        .btn-success {
+            color: #00ff00;
+            border-color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .btn-success:hover:not(:disabled) {
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+        }
+
+        .player1-active .btn-success {
+            color: #ff00ff;
+            border-color: #ff00ff;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+
+        .player1-active .btn-success:hover:not(:disabled) {
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.8);
+        }
+
+        .player2-active .btn-success {
+            color: #00ffff;
+            border-color: #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .player2-active .btn-success:hover:not(:disabled) {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+        }
+
+        .btn-danger {
+            color: #ff0000;
+            border-color: #ff0000;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+
+        .lane-indicators {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ff00ff;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            transition: all 0.3s;
+        }
+
+        .lane-indicators.player1-active {
+            border-color: #ff00ff;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+        }
+
+        .lane-indicators.player2-active {
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+
+        .lane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .lane-key {
+            width: 70px;
+            height: 70px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 3px solid #00ffff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8em;
+            font-weight: 700;
+            transition: all 0.1s;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            position: relative;
+        }
+
+        .lane-key::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 0, 255, 0.3) 50%, transparent 70%);
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .player1-active .lane-key {
+            border-color: #ff00ff;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+        }
+
+        .player2-active .lane-key {
+            border-color: #00ffff;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        .player1-active .lane-key.active {
+            background: rgba(255, 0, 255, 0.3);
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(255, 0, 255, 0.8), 0 0 50px rgba(255, 0, 255, 0.5);
+            border-color: #ff00ff;
+            color: #ff00ff;
+            text-shadow: 0 0 15px #ff00ff;
+        }
+
+        .player2-active .lane-key.active {
+            background: rgba(0, 255, 255, 0.3);
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8), 0 0 50px rgba(0, 255, 255, 0.5);
+            border-color: #00ffff;
+            color: #00ffff;
+            text-shadow: 0 0 15px #00ffff;
+        }
+
+        .lane-key.active::before {
+            opacity: 1;
+        }
+
+        .lane-hit {
+            position: absolute;
+            top: -10px;
+            width: 70px;
+            height: 4px;
+            background: #00ff00;
+            border-radius: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        .player1-active .lane-hit {
+            box-shadow: 0 0 10px #00ff00, 0 0 20px rgba(255, 0, 255, 0.5);
+        }
+
+        .player2-active .lane-hit {
+            box-shadow: 0 0 10px #00ff00, 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .lane-hit.show {
+            opacity: 1;
+        }
+
+        .player-controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .countdown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .countdown-overlay.show {
+            display: flex;
+        }
+
+        .countdown-text {
+            font-size: 8em;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 20px;
+            animation: countdownPulse 1s ease;
+        }
+
+        .countdown-text.go {
+            font-size: 10em;
+            animation: goPulse 0.5s ease;
+        }
+
+        @keyframes countdownPulse {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes goPulse {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.3);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .countdown-text.player1 {
+            color: #ff00ff;
+            text-shadow: 
+                0 0 20px #ff00ff,
+                0 0 40px #ff00ff,
+                0 0 60px #ff00ff;
+        }
+
+        .countdown-text.player2 {
+            color: #00ffff;
+            text-shadow: 
+                0 0 20px #00ffff,
+                0 0 40px #00ffff,
+                0 0 60px #00ffff;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .player-info {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .stats {
+                width: 100%;
+                justify-content: space-around;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header" id="header">
+        <h1>Rhythm Challenge</h1>
+        <p id="header-status">Round 1 - Player 1's turn to record!</p>
+    </div>
+
+    <div class="game-container">
+        <div class="player-info" id="player-info">
+            <div>
+                <div class="player-name player1" id="player-name">Player 1</div>
+                <div class="status" id="status">Ready to record</div>
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">Score</div>
+                    <div class="stat-value" id="score">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Accuracy</div>
+                    <div class="stat-value" id="accuracy">100%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Combo</div>
+                    <div class="stat-value" id="combo">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Health</div>
+                    <div class="stat-value" id="health">100%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-container" id="canvas-container">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="player-controls">
+                <button id="startBtn" class="btn btn-primary" style="display:none;">Start Recording</button>
+                <button id="stopBtn" class="btn btn-secondary" style="display:none;" disabled>Stop</button>
+                <button id="sendBtn" class="btn btn-success" style="display:none;" disabled>Send</button>
+                <button id="playbackBtn" class="btn btn-success" style="display:none;" disabled>Start Playback</button>
+                <button id="resetBtn" class="btn btn-danger">New Game</button>
+            </div>
+            <div class="recording-timer" id="recording-timer">Time: 10.0s</div>
+        </div>
+
+        <div class="lane-indicators" id="lane-indicators">
+            <div class="lane" data-lane="0">
+                <div class="lane-key" id="key-0">A</div>
+                <div class="lane-hit" id="hit-0"></div>
+            </div>
+            <div class="lane" data-lane="1">
+                <div class="lane-key" id="key-1">S</div>
+                <div class="lane-hit" id="hit-1"></div>
+            </div>
+            <div class="lane" data-lane="2">
+                <div class="lane-key" id="key-2">D</div>
+                <div class="lane-hit" id="hit-2"></div>
+            </div>
+            <div class="lane" data-lane="3">
+                <div class="lane-key" id="key-3">F</div>
+                <div class="lane-hit" id="hit-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="countdown-overlay" id="countdown-overlay">
+        <div class="countdown-text" id="countdown-text">3</div>
+    </div>
+
+    <script src="split_screen.js"></script>
+</body>
+</html>
