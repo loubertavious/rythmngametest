@@ -5,7 +5,8 @@ const CONFIG = {
     HIT_WINDOW: 150, // milliseconds
     PERFECT_WINDOW: 50, // milliseconds
     HIT_LINE_Y: 0, // Will be calculated based on canvas height
-    NOTE_HEIGHT: 30,
+    NOTE_HEIGHT: 60,
+    NOTE_WIDTH_OFFSET: 4, // Amount to subtract from lane width for note width
     RECORDING_TIME_LIMIT: 10, // seconds
 };
 
@@ -113,6 +114,7 @@ const gameState = {
     currentTurn: 'player1', // 'player1' or 'player2'
     round: 1,
     countdownActive: false,
+    lastRecordingPlayer: null, // Track who recorded last to ensure alternation
 };
 
 // Shared state
@@ -204,6 +206,29 @@ function switchTurn() {
     if (gameState.currentTurn === 'player1') {
         gameState.round++;
     }
+    updateUIForTurn();
+}
+
+// Switch to next recording player (alternates)
+function switchToNextRecordingPlayer() {
+    // Clear the recorded state so the next player can record
+    sharedState.recordedNotes = [];
+    sharedState.recordedBy = null;
+    
+    // The player who just finished playback should record next
+    // This ensures alternation: 
+    // Round 1: P1 records → P2 plays → Round 2: P2 records → P1 plays → Round 3: P1 records → etc.
+    const justPlayed = gameState.currentTurn; // The player who just finished playback
+    
+    // The player who just played back records next (this alternates recording)
+    gameState.currentTurn = justPlayed;
+    gameState.lastRecordingPlayer = null; // Will be set when they record
+    
+    // Increment round when we cycle back to player1
+    if (gameState.currentTurn === 'player1') {
+        gameState.round++;
+    }
+    
     updateUIForTurn();
 }
 
@@ -312,6 +337,7 @@ function startRecording() {
     const currentPlayer = getCurrentPlayer();
     if (currentPlayer.mode !== 'idle') return;
     
+    // Start recording immediately, but ignore notes in first second
     currentPlayer.mode = 'recording';
     currentPlayer.recordedNotes = [];
     currentPlayer.startTime = Date.now();
@@ -321,7 +347,7 @@ function startRecording() {
     stopBtn.disabled = false;
     sendBtn.disabled = true;
     
-    // Show and start timer
+    // Show and start timer immediately
     recordingTimer.style.display = 'block';
     recordingTimer.classList.remove('warning');
     updateRecordingTimer();
@@ -366,6 +392,10 @@ function recordNote(lane) {
     if (currentPlayer.mode !== 'recording') return;
     
     const timestamp = Date.now() - currentPlayer.startTime;
+    
+    // Ignore notes in the first second (1000ms) - this adds 1 second of zero notes at the start
+    if (timestamp < 1000) return;
+    
     currentPlayer.recordedNotes.push({
         lane: lane,
         timestamp: timestamp,
@@ -402,13 +432,16 @@ function sendNotes() {
     sharedState.recordedNotes = [...currentPlayer.recordedNotes];
     sharedState.recordedBy = gameState.currentTurn;
     
+    // Track who just recorded
+    gameState.lastRecordingPlayer = gameState.currentTurn;
+    
     const otherPlayer = getOtherPlayer();
     preparePlaybackNotes(otherPlayer);
     
     sendBtn.disabled = true;
     status.textContent = 'Notes sent!';
     
-    // Switch to other player's turn
+    // Switch to other player's turn for playback
     switchTurn();
 }
 
@@ -544,13 +577,15 @@ function finishPlayback() {
     status.textContent = `Finished! Score: ${currentPlayer.score} | Accuracy: ${accuracy}% | Max Combo: ${currentPlayer.maxCombo}`;
     
     setTimeout(() => {
-        switchTurn();
+        // Switch to the next player who should record (alternating)
+        switchToNextRecordingPlayer();
     }, 2000);
 }
 
 function resetGame() {
     gameState.currentTurn = 'player1';
     gameState.round = 1;
+    gameState.lastRecordingPlayer = null;
     
     player1State.mode = 'idle';
     player1State.recordedNotes = [];
@@ -613,7 +648,7 @@ function drawHitLine() {
 function drawNote(lane, y, color) {
     const laneWidth = canvas.width / CONFIG.LANES;
     const x = lane * laneWidth;
-    const width = laneWidth - 4;
+    const width = laneWidth - CONFIG.NOTE_WIDTH_OFFSET;
     
     ctx.fillStyle = color;
     ctx.shadowBlur = 15;
@@ -726,6 +761,41 @@ resetBtn.addEventListener('click', () => {
 window.addEventListener('keydown', (e) => {
     soundManager.initAudio();
     
+    // Handle Space key: Start recording / Start playback / Stop
+    if (e.code === 'Space') {
+        e.preventDefault(); // Prevent page scroll
+        const currentPlayer = getCurrentPlayer();
+        
+        if (currentPlayer.mode === 'recording') {
+            // Stop recording
+            stopRecording();
+        } else if (currentPlayer.mode === 'playback') {
+            // Stop playback (if needed, or could be disabled during playback)
+            // For now, space doesn't stop playback - only stops recording
+        } else if (currentPlayer.mode === 'idle') {
+            // Check if we should start recording or playback
+            const startBtn = document.getElementById('startBtn');
+            const playbackBtn = document.getElementById('playbackBtn');
+            
+            if (startBtn && startBtn.style.display !== 'none' && !startBtn.disabled) {
+                startRecording();
+            } else if (playbackBtn && playbackBtn.style.display !== 'none' && !playbackBtn.disabled) {
+                startPlayback();
+            }
+        }
+        return;
+    }
+    
+    // Handle Enter key: Send notes
+    if (e.code === 'Enter') {
+        e.preventDefault();
+        const sendBtn = document.getElementById('sendBtn');
+        if (sendBtn && sendBtn.style.display !== 'none' && !sendBtn.disabled) {
+            sendNotes();
+        }
+        return;
+    }
+    
     if (KEY_MAP.hasOwnProperty(e.code)) {
         const lane = KEY_MAP[e.code];
         const laneKey = document.getElementById(`key-${lane}`);
@@ -763,6 +833,50 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
+// Dev Console
+function initDevConsole() {
+    const devConsole = document.getElementById('dev-console');
+    const devConsoleToggle = document.getElementById('dev-console-toggle');
+    const devConsoleContent = document.getElementById('dev-console-content');
+    const noteHeightInput = document.getElementById('note-height');
+    const noteWidthOffsetInput = document.getElementById('note-width-offset');
+    
+    if (!devConsole) return;
+    
+    // Toggle console visibility
+    devConsoleToggle.addEventListener('click', () => {
+        const isHidden = devConsoleContent.classList.contains('hidden');
+        if (isHidden) {
+            devConsoleContent.classList.remove('hidden');
+            devConsoleToggle.textContent = 'Hide';
+        } else {
+            devConsoleContent.classList.add('hidden');
+            devConsoleToggle.textContent = 'Show';
+        }
+    });
+    
+    // Update note height
+    noteHeightInput.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        if (!isNaN(value) && value >= 10 && value <= 200) {
+            CONFIG.NOTE_HEIGHT = value;
+        }
+    });
+    
+    // Update note width offset
+    noteWidthOffsetInput.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        if (!isNaN(value) && value >= 0 && value <= 50) {
+            CONFIG.NOTE_WIDTH_OFFSET = value;
+        }
+    });
+    
+    // Sync inputs with current CONFIG values
+    noteHeightInput.value = CONFIG.NOTE_HEIGHT;
+    noteWidthOffsetInput.value = CONFIG.NOTE_WIDTH_OFFSET;
+}
+
 // Initialize
 resetGame();
+initDevConsole();
 gameLoop();
