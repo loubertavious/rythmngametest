@@ -5,7 +5,7 @@ const CONFIG = {
     HIT_WINDOW: 150, // milliseconds
     PERFECT_WINDOW: 50, // milliseconds
     HIT_LINE_Y: 0, // Will be calculated based on canvas height
-    NOTE_HEIGHT: 60,
+    NOTE_HEIGHT: 40,
     NOTE_WIDTH_OFFSET: 4, // Amount to subtract from lane width for note width
     RECORDING_TIME_LIMIT: 10, // seconds
 };
@@ -761,6 +761,16 @@ resetBtn.addEventListener('click', () => {
 window.addEventListener('keydown', (e) => {
     soundManager.initAudio();
     
+    // Handle Backtick (`) or Tilde (~) key: Toggle dev console
+    if (e.code === 'Backquote' || e.key === '`' || e.key === '~' || e.keyCode === 192) {
+        e.preventDefault();
+        const devConsoleToggle = document.getElementById('dev-console-toggle');
+        if (devConsoleToggle) {
+            devConsoleToggle.click();
+        }
+        return;
+    }
+    
     // Handle Space key: Start recording / Start playback / Stop
     if (e.code === 'Space') {
         e.preventDefault(); // Prevent page scroll
@@ -841,7 +851,13 @@ function initDevConsole() {
     const noteHeightInput = document.getElementById('note-height');
     const noteWidthOffsetInput = document.getElementById('note-width-offset');
     
-    if (!devConsole) return;
+    if (!devConsole) {
+        console.warn('Dev console element not found');
+        return;
+    }
+    
+    // Ensure dev console is visible
+    devConsole.style.display = 'block';
     
     // Toggle console visibility
     devConsoleToggle.addEventListener('click', () => {
