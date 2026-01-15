@@ -6,6 +6,7 @@ const CONFIG = {
     PERFECT_WINDOW: 50, // milliseconds
     HIT_LINE_Y: 0, // Will be calculated based on canvas height
     NOTE_HEIGHT: 30,
+    RECORDING_TIME_LIMIT: 10, // seconds
 };
 
 // Sound Manager
@@ -132,6 +133,7 @@ const player1State = {
     hits: 0,
     misses: 0,
     totalNotes: 0,
+    health: 100,
 };
 
 // Player 2 State
@@ -146,6 +148,7 @@ const player2State = {
     hits: 0,
     misses: 0,
     totalNotes: 0,
+    health: 100,
 };
 
 // Canvas setup
@@ -177,10 +180,14 @@ const status = document.getElementById('status');
 const score = document.getElementById('score');
 const accuracy = document.getElementById('accuracy');
 const combo = document.getElementById('combo');
+const health = document.getElementById('health');
 const canvasContainer = document.getElementById('canvas-container');
 const laneIndicators = document.getElementById('lane-indicators');
 const countdownOverlay = document.getElementById('countdown-overlay');
 const countdownText = document.getElementById('countdown-text');
+const recordingTimer = document.getElementById('recording-timer');
+
+let recordingTimerInterval = null;
 
 // Get current player state
 function getCurrentPlayer() {
@@ -308,13 +315,50 @@ function startRecording() {
     currentPlayer.mode = 'recording';
     currentPlayer.recordedNotes = [];
     currentPlayer.startTime = Date.now();
+    currentPlayer.recordingEndTime = currentPlayer.startTime + (CONFIG.RECORDING_TIME_LIMIT * 1000);
     
     startBtn.disabled = true;
     stopBtn.disabled = false;
     sendBtn.disabled = true;
     
+    // Show and start timer
+    recordingTimer.style.display = 'block';
+    recordingTimer.classList.remove('warning');
+    updateRecordingTimer();
+    recordingTimerInterval = setInterval(updateRecordingTimer, 100);
+    
     status.textContent = 'Recording... Press ASDF keys!';
     updateUI();
+}
+
+function updateRecordingTimer() {
+    const currentPlayer = getCurrentPlayer();
+    if (currentPlayer.mode !== 'recording') {
+        recordingTimer.style.display = 'none';
+        if (recordingTimerInterval) {
+            clearInterval(recordingTimerInterval);
+            recordingTimerInterval = null;
+        }
+        return;
+    }
+    
+    const now = Date.now();
+    const remaining = Math.max(0, currentPlayer.recordingEndTime - now);
+    const remainingSeconds = (remaining / 1000).toFixed(1);
+    
+    recordingTimer.textContent = `Time: ${remainingSeconds}s`;
+    
+    // Add warning class when time is running out
+    if (remaining <= 3000) { // 3 seconds or less
+        recordingTimer.classList.add('warning');
+    } else {
+        recordingTimer.classList.remove('warning');
+    }
+    
+    // Auto-stop when time runs out
+    if (remaining <= 0) {
+        stopRecording();
+    }
 }
 
 function recordNote(lane) {
@@ -333,6 +377,14 @@ function recordNote(lane) {
 function stopRecording() {
     const currentPlayer = getCurrentPlayer();
     if (currentPlayer.mode !== 'recording') return;
+    
+    // Clear timer
+    if (recordingTimerInterval) {
+        clearInterval(recordingTimerInterval);
+        recordingTimerInterval = null;
+    }
+    recordingTimer.style.display = 'none';
+    recordingTimer.classList.remove('warning');
     
     currentPlayer.mode = 'idle';
     startBtn.disabled = false;
@@ -377,6 +429,9 @@ function startPlayback() {
     
     playbackBtn.disabled = true;
     status.textContent = 'Get ready...';
+    
+    // Reset health for new round
+    currentPlayer.health = 100;
     
     // Two second delay before starting
     gameState.countdownActive = true;
@@ -460,6 +515,12 @@ function missNote(note) {
     currentPlayer.misses++;
     currentPlayer.combo = 0;
     
+    // Calculate health based on missed note percentage
+    if (currentPlayer.totalNotes > 0) {
+        const missPercentage = (currentPlayer.misses / currentPlayer.totalNotes) * 100;
+        currentPlayer.health = Math.max(0, 100 - missPercentage);
+    }
+    
     soundManager.playMiss();
     updateUI();
 }
@@ -499,6 +560,7 @@ function resetGame() {
     player1State.hits = 0;
     player1State.misses = 0;
     player1State.totalNotes = 0;
+    player1State.health = 100;
     
     player2State.mode = 'idle';
     player2State.recordedNotes = [];
@@ -508,6 +570,7 @@ function resetGame() {
     player2State.hits = 0;
     player2State.misses = 0;
     player2State.totalNotes = 0;
+    player2State.health = 100;
     
     sharedState.recordedNotes = [];
     sharedState.recordedBy = null;
@@ -632,6 +695,10 @@ function updateUI() {
     accuracy.textContent = `${acc}%`;
     
     combo.textContent = currentPlayer.combo;
+    
+    // Update health percentage
+    const healthValue = Math.max(0, Math.min(100, currentPlayer.health));
+    health.textContent = `${Math.round(healthValue)}%`;
 }
 
 // Event Listeners

@@ -174,6 +174,43 @@
             text-shadow: 0 0 5px #fff;
         }
 
+        .recording-timer {
+            font-size: 1.5em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-top: 10px;
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            border: 2px solid;
+            display: none;
+        }
+
+        .player1-active .recording-timer {
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+            border-color: #ff00ff;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+        }
+
+        .player2-active .recording-timer {
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+
+        .recording-timer.warning {
+            animation: timerPulse 0.5s ease infinite;
+        }
+
+        @keyframes timerPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         .stats {
             display: flex;
             gap: 30px;
@@ -617,6 +654,10 @@
                     <div class="stat-label">Combo</div>
                     <div class="stat-value" id="combo">0</div>
                 </div>
+                <div class="stat-item">
+                    <div class="stat-label">Health</div>
+                    <div class="stat-value" id="health">100%</div>
+                </div>
             </div>
         </div>
 
@@ -632,6 +673,7 @@
                 <button id="playbackBtn" class="btn btn-success" style="display:none;" disabled>Start Playback</button>
                 <button id="resetBtn" class="btn btn-danger">New Game</button>
             </div>
+            <div class="recording-timer" id="recording-timer">Time: 10.0s</div>
         </div>
 
         <div class="lane-indicators" id="lane-indicators">
