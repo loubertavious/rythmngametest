@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Game - Two Player Challenge</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Rhythm Challenge 🎵</h1>
+            <p class="subtitle">Two Player Rhythm Game</p>
+        </div>
+
+        <div class="game-info">
+            <div class="info-panel">
+                <div class="player-info">
+                    <h2 id="current-player">Player 1: Record</h2>
+                    <p id="game-instructions">Press arrow keys to create your rhythm pattern!</p>
+                </div>
+                <div class="score-panel">
+                    <div class="score-item">
+                        <span class="label">Score:</span>
+                        <span id="score">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="label">Accuracy:</span>
+                        <span id="accuracy">100%</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="label">Combo:</span>
+                        <span id="combo">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container">
+            <canvas id="gameCanvas"></canvas>
+            <div class="lane-indicators">
+                <div class="lane" data-lane="0">
+                    <div class="lane-key">←</div>
+                    <div class="lane-hit" id="hit-0"></div>
+                </div>
+                <div class="lane" data-lane="1">
+                    <div class="lane-key">↓</div>
+                    <div class="lane-hit" id="hit-1"></div>
+                </div>
+                <div class="lane" data-lane="2">
+                    <div class="lane-key">↑</div>
+                    <div class="lane-hit" id="hit-2"></div>
+                </div>
+                <div class="lane" data-lane="3">
+                    <div class="lane-key">→</div>
+                    <div class="lane-hit" id="hit-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="startBtn" class="btn btn-primary">Start Recording</button>
+            <button id="stopBtn" class="btn btn-secondary" disabled>Stop</button>
+            <button id="playbackBtn" class="btn btn-success" disabled>Start Playback</button>
+            <button id="resetBtn" class="btn btn-danger">Reset</button>
+        </div>
+
+        <div class="instructions">
+            <h3>How to Play:</h3>
+            <div class="instruction-grid">
+                <div class="instruction-card">
+                    <h4>Player 1 - Recording</h4>
+                    <ul>
+                        <li>Click "Start Recording"</li>
+                        <li>Press arrow keys (← ↓ ↑ →) to create your rhythm</li>
+                        <li>Click "Stop" when finished</li>
+                        <li>Your pattern will be saved</li>
+                    </ul>
+                </div>
+                <div class="instruction-card">
+                    <h4>Player 2 - Playback</h4>
+                    <ul>
+                        <li>Click "Start Playback"</li>
+                        <li>Watch the notes scroll down</li>
+                        <li>Press the same arrow keys when notes hit the bottom</li>
+                        <li>Match the rhythm to score points!</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
